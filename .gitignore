@@ -1,1 +1,8 @@
-pytorch/text_classification_cn/initial_code/common.py
+news_rec/data/test
+news_rec/data/train
+news_rec/data/mini_news.dat
+news_rec/data/mini_news.test.tfrecord
+news_rec/data/mini_news.train.tfrecord
+news_rec/data/news.dat
+news_rec/model
+
