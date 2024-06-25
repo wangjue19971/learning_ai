@@ -18,7 +18,7 @@ class MCF(object):
         self.shuffle = 50
         self.batch = 16
 
-        self.epochs = 5
+        self.epochs = 10
         self.current_model_path = "news_rec/model/save_model"
         self.restore = False
 
@@ -41,7 +41,14 @@ class MCF(object):
         logit = tf.reduce_sum(interact, axis=-1)
         pred = tf.keras.layers.Activation('sigmoid', name="pred")(logit)
         
-        self.model = tf.keras.Model(inputs={"user": user, "item": item}, outputs=pred)
+        self.model = self.model = tf.keras.Model({
+            "user": user,
+            "item": item
+        }, {
+            "pred": logit,
+            "user_emb": tf.identity(user_emb, name="user_emb"),
+            "item_emb": tf.identity(item_emb, name="item_emb")
+        })
         self.model.summary()
 
     def init_loss(self):
@@ -87,7 +94,8 @@ class MCF(object):
         for inputs in ds:
             with tf.GradientTape() as tape:
                 target = inputs.pop(self.label_name)
-                logits = self.model(inputs, training=True)
+                outputs = self.model(inputs, training=True)
+                logits = outputs['pred']  # 修改这里，使用字典键访问预测值
                 loss = self.loss(target, logits)
             
             gradients = tape.gradient(loss, self.model.trainable_variables)
@@ -105,7 +113,8 @@ class MCF(object):
         # 评估步骤
         for inputs in ds:
             target = inputs.pop(self.label_name)
-            logits = self.model(inputs, training=False)
+            outputs = self.model(inputs, training=False)
+            logits = outputs['pred']  # 修改这里，使用字典键访问预测值
             self.metric_auc.update_state(target, logits)
         
         result = {self.metric_auc.name: self.metric_auc.result().numpy()}
@@ -138,11 +147,11 @@ class MCF(object):
 
     def export_model(self):
         # 导出模型
-        tf.saved_model.save(self.model, self.current_model_path)
+        tf.keras.models.save_model(self.model, self.current_model_path)
 
     def load_model(self):
         # 加载模型
-        self.imported = tf.saved_model.load(self.current_model_path)
+        self.imported = tf.keras.models.load_model(self.current_model_path)
 
     def infer(self, x):
         # 推理
@@ -159,3 +168,6 @@ if __name__ == "__main__":
     mcf.init_save_checkpoint()
     mcf.run(train_ds, test_ds, mode="train_and_eval")
     mcf.export_model()
+    
+# Training result: {'auc': 0.83746296, 'loss': 0.50003207}
+# Evaluation result: {'auc': 0.70692934}
