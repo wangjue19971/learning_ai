@@ -5,4 +5,5 @@ news_rec/data/mini_news.test.tfrecord
 news_rec/data/mini_news.train.tfrecord
 news_rec/data/news.dat
 news_rec/model
+fun_rec/data_raw
 
